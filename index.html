@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JUTA FNB — Kitchen Delivery Order Generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f4f4f4; font-family: Arial, sans-serif; padding: 20px; color: #333; }
+  h1 { font-size: 20px; margin-bottom: 16px; color: #222; }
+  h2 { font-size: 16px; margin-bottom: 14px; color: #333; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: bold; color: #555; }
+  input[type=text], input[type=date], input[type=number] {
+    padding: 7px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; width: 100%;
+  }
+  .att { font-size: 13px; color: #888; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f0f0f0; padding: 9px 10px; font-size: 12px; font-weight: bold; border-bottom: 2px solid #ddd; white-space: nowrap; text-align: center; }
+  th.left { text-align: left; }
+  td { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  td input[type=number] { width: 52px; text-align: center; }
+  td input[type=text].notes { width: 130px; }
+  td input[type=text].unit-in { width: 70px; }
+  td input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+  .center { text-align: center; }
+  .btn { padding: 9px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .btn-green { background: #4caf50; color: #fff; margin-top: 10px; }
+  .btn-red { background: #ff6b6b; color: #fff; padding: 4px 10px; font-size: 12px; }
+  .btn-grey { background: #6c757d; color: #fff; }
+  .btn-blue { background: #007bff; color: #fff; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .overflow { overflow-x: auto; }
+  tr.category-row td {
+    background: #1a1a1a !important;
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 8px 10px;
+    letter-spacing: 0.3px;
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header Card -->
+<div class="card no-print">
+  <h1>JUTA FNB — Kitchen Delivery Order Generator</h1>
+  <div class="grid2">
+    <div>
+      <label>Staff Name *</label>
+      <input type="text" id="staffName" placeholder="Enter staff name" />
+    </div>
+    <div>
+      <label>Date</label>
+      <input type="date" id="orderDate" />
+    </div>
+  </div>
+  <p class="att">ATT: MR HONG — 012 7638835</p>
+  <div>
+    <label>Delivery to (Branch) *</label>
+    <input type="text" id="branch" placeholder="e.g. Damansara Uptown, TRX, Batu Pahat" />
+  </div>
+</div>
+
+<!-- Main Items Card -->
+<div class="card no-print">
+  <h2>Kitchen Items</h2>
+  <div class="overflow">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th class="left">Item Name</th>
+          <th>Qty</th>
+          <th>Unit</th>
+          <th>Delivered ✓</th>
+          <th class="left">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="mainBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Other / Ad-hoc Items Card -->
+<div class="card no-print">
+  <h2>Other / Ad-hoc Items</h2>
+  <div class="overflow">
+    <table>
+      <thead>
+        <tr>
+          <th class="left">Item Name</th>
+          <th>Qty</th>
+          <th>Unit</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="bakeryBody"></tbody>
+    </table>
+  </div>
+  <button class="btn btn-green" onclick="addBakeryRow()">+ Add Row</button>
+</div>
+
+<!-- Actions -->
+<div class="actions no-print">
+  <button class="btn btn-grey" onclick="resetForm()">↺ Reset</button>
+  <button class="btn btn-blue" onclick="generatePrint()">🖨 Print / Save as PDF</button>
+</div>
+
+<script>
+// Categorized kitchen SKU catalog
+const categories = [
+  {
+    name: "Protein / Ready Item",
+    items: [
+      { name: "Angus Beef", unit: "Pkt" },
+      { name: "Beef Pepperoni", unit: "Pkt" },
+      { name: "Chicken Breast", unit: "Pkt" },
+      { name: "Chicken Chop", unit: "Pkt" },
+      { name: "Chicken Pepperoni", unit: "Pkt" },
+      { name: "Chicken Wing", unit: "Pkt" },
+      { name: "Minced Beef", unit: "Pkt" },
+      { name: "Minced Chicken", unit: "Pkt" },
+      { name: "Pasta", unit: "Pkt" },
+      { name: "Perch Fish", unit: "Pkt" },
+      { name: "Perch Fish Cube", unit: "Pkt" },
+      { name: "Roasted Beef", unit: "Pkt" },
+      { name: "Roasted Soup", unit: "Pkt" },
+      { name: "Salmon Don", unit: "Pkt" },
+      { name: "Salmon Ochazuke", unit: "Pkt" },
+      { name: "Salmon Pizza", unit: "Pkt" },
+      { name: "Seafood", unit: "Pkt" },
+      { name: "Shark Meat", unit: "Pkt" },
+      { name: "Smoke Duck Pasta", unit: "Pkt" },
+      { name: "Smoke Duck Pizza", unit: "Pkt" },
+      { name: "Tempura Prawn", unit: "Tray" },
+      { name: "Unagi", unit: "Box" },
+    ]
+  },
+  {
+    name: "Sauce & Curry",
+    items: [
+      { name: "Asam Pedas", unit: "Pkt" },
+      { name: "Dashi Powder", unit: "Pkt" },
+      { name: "Dry Curry", unit: "Pkt" },
+      { name: "Fried Powder", unit: "Pkt" },
+      { name: "Japanese Curry", unit: "Pkt" },
+      { name: "Mala Base", unit: "Pkt" },
+      { name: "Mapo Tofu Sauce", unit: "Pkt" },
+      { name: "Mutton Curry", unit: "Pkt" },
+      { name: "Tobiko", unit: "Box" },
+      { name: "Tomato Bolognese", unit: "Pkt" },
+    ]
+  },
+  {
+    name: "Condiment & Oil",
+    items: [
+      { name: "Black Truffle", unit: "Btl" },
+      { name: "Cooking Oil", unit: "Tin" },
+      { name: "Durian Paste", unit: "Pkt" },
+      { name: "Fried Garlic", unit: "Pkt" },
+      { name: "Fried Onion", unit: "Pkt" },
+      { name: "Japanese Rice", unit: "Ctn" },
+      { name: "Scallion Oil", unit: "Pkt" },
+      { name: "Teriyaki Sauce", unit: "Pkt" },
+      { name: "Truffle Sauce", unit: "Pkt" },
+    ]
+  },
+  {
+    name: "Off Season",
+    items: [
+      { name: "Black Pepper", unit: "Pkt" },
+      { name: "Potato Wedges", unit: "Pkt" },
+      { name: "Spring Chicken", unit: "Pkt" },
+    ]
+  },
+];
+
+// Flatten into a single indexed list, remembering category boundaries
+const fixedItems = [];
+categories.forEach(cat => {
+  cat.items.forEach(item => fixedItems.push(item));
+});
+
+// Set today's date
+document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+
+// Build main items table with category header rows
+const mainBody = document.getElementById("mainBody");
+let globalIndex = 0;
+categories.forEach(cat => {
+  const catRow = document.createElement("tr");
+  catRow.className = "category-row";
+  catRow.innerHTML = `<td colspan="5">${cat.name}</td>`;
+  mainBody.appendChild(catRow);
+
+  cat.items.forEach(item => {
+    const i = globalIndex++;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.name}</td>
+      <td class="center"><input type="number" min="0" id="qty_${i}" placeholder="0" /></td>
+      <td class="center" style="color:#777">${item.unit}</td>
+      <td class="center"><input type="checkbox" id="del_${i}" /></td>
+      <td><input type="text" class="notes" id="note_${i}" placeholder="Remarks..." /></td>
+    `;
+    mainBody.appendChild(tr);
+  });
+});
+
+// Ad-hoc rows
+let bakeryCount = 0;
+function addBakeryRow() {
+  const tbody = document.getElementById("bakeryBody");
+  const idx = bakeryCount++;
+  const tr = document.createElement("tr");
+  tr.id = `brow_${idx}`;
+  tr.innerHTML = `
+    <td><input type="text" id="bname_${idx}" placeholder="e.g. Sample item" /></td>
+    <td class="center"><input type="number" min="0" id="bqty_${idx}" placeholder="0" /></td>
+    <td class="center"><input type="text" class="unit-in" id="bunit_${idx}" placeholder="Pkt/Tin/Ctn" /></td>
+    <td class="center"><button class="btn btn-red" onclick="removeBakeryRow('brow_${idx}')">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// Add 5 default ad-hoc rows
+for (let i = 0; i < 5; i++) addBakeryRow();
+
+function removeBakeryRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function generatePrint() {
+  const staffName = document.getElementById("staffName").value.trim();
+  const date = document.getElementById("orderDate").value;
+  const branch = document.getElementById("branch").value.trim();
+
+  if (!staffName || !branch) {
+    alert("Please fill in Staff Name and Delivery Branch.");
+    return;
+  }
+
+  let rows = "";
+
+  categories.forEach(cat => {
+    // Collect any non-zero items in this category first
+    let catRows = "";
+    cat.items.forEach(item => {
+      const i = fixedItems.indexOf(item);
+      const qty = document.getElementById(`qty_${i}`).value;
+      if (!qty || qty == 0) return;
+      const del = document.getElementById(`del_${i}`).checked ? "✓" : "";
+      const note = document.getElementById(`note_${i}`).value;
+      catRows += `<tr>
+        <td>${item.name}</td>
+        <td style="text-align:center">${qty}</td>
+        <td style="text-align:center">${item.unit}</td>
+        <td style="text-align:center">${del}</td>
+        <td>${note}</td>
+      </tr>`;
+    });
+    if (catRows) {
+      rows += `<tr style="background:#1a1a1a;color:#fff;font-weight:bold;">
+        <td colspan="5">${cat.name}</td>
+      </tr>`;
+      rows += catRows;
+    }
+  });
+
+  // Ad-hoc rows
+  document.querySelectorAll("[id^='brow_']").forEach(row => {
+    const idx = row.id.replace("brow_", "");
+    const name = document.getElementById(`bname_${idx}`)?.value.trim();
+    const qty = document.getElementById(`bqty_${idx}`)?.value;
+    const unit = document.getElementById(`bunit_${idx}`)?.value;
+    if (!name || !qty || qty == 0) return;
+    rows += `<tr>
+      <td>${name} <em style="color:#888">(Other)</em></td>
+      <td style="text-align:center">${qty}</td>
+      <td style="text-align:center">${unit}</td>
+      <td></td><td></td>
+    </tr>`;
+  });
+
+  if (!rows) {
+    alert("Please enter at least one item quantity.");
+    return;
+  }
+
+  const html = `<!DOCTYPE html><html><head><title>Kitchen Delivery Order — ${branch}</title>
+  <style>
+    body { font-family: Georgia, 'Times New Roman', serif; padding: 30px; color: #2b2b2b; font-size: 13px; }
+    .company-header { text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 16px; margin-bottom: 4px; position: relative; }
+    .company-header::after { content: ""; display: block; width: 60px; height: 2px; background: #c9a961; margin: 10px auto 0; }
+    .company-name { font-family: Arial, sans-serif; font-size: 25px; font-weight: bold; color: #111; letter-spacing: 1px; margin-bottom: 6px; }
+    .company-address { font-family: Arial, sans-serif; font-size: 11px; color: #555; line-height: 1.6; max-width: 480px; margin: 0 auto; }
+    .company-contact { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin-top: 8px; letter-spacing: 0.3px; }
+    .doc-title { font-family: Arial, sans-serif; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 3px; color: #1a1a1a; margin: 22px 0 4px 0; text-transform: uppercase; }
+    .att-line { font-family: Arial, sans-serif; text-align: center; font-size: 12px; color: #888; margin-bottom: 20px; }
+    .info-box { font-family: Arial, sans-serif; display: flex; justify-content: space-between; border: 1px solid #1a1a1a; padding: 12px 18px; margin-bottom: 20px; background: #fff; }
+    .info-box div { font-size: 13px; }
+    .info-box strong { display: block; font-size: 10.5px; text-transform: uppercase; color: #999; letter-spacing: 0.8px; margin-bottom: 3px; font-weight: normal; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-family: Arial, sans-serif; }
+    th { background: #1a1a1a; color: #fff; border: 1px solid #1a1a1a; padding: 9px 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    td { border: 1px solid #ccc; padding: 9px 8px; font-size: 12px; }
+    .sign-section { font-family: Arial, sans-serif; display: flex; justify-content: space-between; margin-top: 55px; gap: 20px; }
+    .sign-box { flex: 1; text-align: center; }
+    .sign-line { border-top: 1px solid #1a1a1a; margin-top: 45px; padding-top: 6px; font-size: 12px; }
+    .sign-role { font-size: 12.5px; font-weight: bold; color: #1a1a1a; margin-bottom: 2px; letter-spacing: 0.3px; }
+    .sign-sub { font-size: 10.5px; color: #999; }
+    @media print { body { padding: 15px; } }
+  </style></head><body>
+  <div class="company-header">
+    <div class="company-name">JUTA FNB SDN BHD</div>
+    <div class="company-address">
+      Reg No: C202501027901 / 1629313-D<br/>
+      B-01-18, Plaza Bukit Jalil (Aurora Place), No.1, Persiaran Jalil 1, Bandar Bukit Jalil,<br/>
+      57000 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur, Malaysia
+    </div>
+    <div class="company-contact">+60 12-763 8835 &nbsp;|&nbsp; jutafnb@gmail.com</div>
+  </div>
+  <div class="doc-title">Delivery Order</div>
+  <p class="att-line">ATT: MR HONG — 012 7638835</p>
+  <div class="info-box">
+    <div><strong>Staff Name</strong>${staffName}</div>
+    <div><strong>Date</strong>${date}</div>
+    <div><strong>Delivery To</strong>${branch}</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Item Name</th>
+        <th>Qty</th><th>Unit</th>
+        <th>Delivered ✓</th>
+        <th style="text-align:left">Notes</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="sign-section">
+    <div class="sign-box">
+      <div class="sign-line">
+        <div class="sign-role">Prepared by</div>
+        <div class="sign-sub">Name / Signature / Date</div>
+      </div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-line">
+        <div class="sign-role">Delivered by</div>
+        <div class="sign-sub">Name / Signature / Date</div>
+      </div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-line">
+        <div class="sign-role">Received by (Branch)</div>
+        <div class="sign-sub">Name / Signature / Date</div>
+      </div>
+    </div>
+  </div>
+  </body></html>`;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
+function resetForm() {
+  document.getElementById("staffName").value = "";
+  document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+  document.getElementById("branch").value = "";
+  fixedItems.forEach((_, i) => {
+    document.getElementById(`qty_${i}`).value = "";
+    document.getElementById(`del_${i}`).checked = false;
+    document.getElementById(`note_${i}`).value = "";
+  });
+  document.getElementById("bakeryBody").innerHTML = "";
+  bakeryCount = 0;
+  for (let i = 0; i < 5; i++) addBakeryRow();
+}
+</script>
+</body>
+</html>
