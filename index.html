@@ -79,7 +79,8 @@
           <th class="left">Item Name</th>
           <th>Qty</th>
           <th>Unit</th>
-          <th>Delivered ✓</th>
+          <th>Packed ✓</th>
+          <th>Received ✓</th>
           <th class="left">Notes</th>
         </tr>
       </thead>
@@ -197,7 +198,7 @@ let globalIndex = 0;
 categories.forEach(cat => {
   const catRow = document.createElement("tr");
   catRow.className = "category-row";
-  catRow.innerHTML = `<td colspan="5">${cat.name}</td>`;
+  catRow.innerHTML = `<td colspan="6">${cat.name}</td>`;
   mainBody.appendChild(catRow);
 
   cat.items.forEach(item => {
@@ -208,6 +209,7 @@ categories.forEach(cat => {
       <td class="center"><input type="number" min="0" id="qty_${i}" placeholder="0" /></td>
       <td class="center" style="color:#777">${item.unit}</td>
       <td class="center"><input type="checkbox" id="del_${i}" /></td>
+      <td class="center"><input type="checkbox" id="rcv_${i}" /></td>
       <td><input type="text" class="notes" id="note_${i}" placeholder="Remarks..." /></td>
     `;
     mainBody.appendChild(tr);
@@ -258,18 +260,20 @@ function generatePrint() {
       const qty = document.getElementById(`qty_${i}`).value;
       if (!qty || qty == 0) return;
       const del = document.getElementById(`del_${i}`).checked ? "✓" : "";
+      const rcv = document.getElementById(`rcv_${i}`).checked ? "✓" : "";
       const note = document.getElementById(`note_${i}`).value;
       catRows += `<tr>
         <td>${item.name}</td>
         <td style="text-align:center">${qty}</td>
         <td style="text-align:center">${item.unit}</td>
         <td style="text-align:center">${del}</td>
+        <td style="text-align:center">${rcv}</td>
         <td>${note}</td>
       </tr>`;
     });
     if (catRows) {
       rows += `<tr style="background:#1a1a1a;color:#fff;font-weight:bold;">
-        <td colspan="5">${cat.name}</td>
+        <td colspan="6">${cat.name}</td>
       </tr>`;
       rows += catRows;
     }
@@ -286,7 +290,7 @@ function generatePrint() {
       <td>${name} <em style="color:#888">(Other)</em></td>
       <td style="text-align:center">${qty}</td>
       <td style="text-align:center">${unit}</td>
-      <td></td><td></td>
+      <td></td><td></td><td></td>
     </tr>`;
   });
 
@@ -339,7 +343,8 @@ function generatePrint() {
       <tr>
         <th style="text-align:left">Item Name</th>
         <th>Qty</th><th>Unit</th>
-        <th>Delivered ✓</th>
+        <th>Packed ✓</th>
+        <th>Received ✓</th>
         <th style="text-align:left">Notes</th>
       </tr>
     </thead>
@@ -381,6 +386,7 @@ function resetForm() {
   fixedItems.forEach((_, i) => {
     document.getElementById(`qty_${i}`).value = "";
     document.getElementById(`del_${i}`).checked = false;
+    document.getElementById(`rcv_${i}`).checked = false;
     document.getElementById(`note_${i}`).value = "";
   });
   document.getElementById("bakeryBody").innerHTML = "";
