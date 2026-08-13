@@ -12,7 +12,7 @@
   .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: bold; color: #555; }
-  input[type=text], input[type=date], input[type=number] {
+  input[type=text], input[type=date], input[type=number], select {
     padding: 7px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; width: 100%;
   }
   .att { font-size: 13px; color: #888; margin-bottom: 10px; }
@@ -65,7 +65,14 @@
   <p class="att">ATT: MR HONG — 012 7638835</p>
   <div>
     <label>Delivery to (Branch) *</label>
-    <input type="text" id="branch" placeholder="e.g. Damansara Uptown, TRX, Batu Pahat" />
+    <select id="branch">
+      <option value="">— Select Branch —</option>
+      <option value="Batu Pahat">Batu Pahat</option>
+      <option value="Bukit Indah (JB)">Bukit Indah (JB)</option>
+      <option value="Sutera (JB)">Sutera (JB)</option>
+      <option value="Seri Austin (JB)">Seri Austin (JB)</option>
+      <option value="Sunway (JB)">Sunway (JB)</option>
+    </select>
   </div>
 </div>
 
@@ -115,6 +122,32 @@
 </div>
 
 <script>
+// ===== Google Sheets Logging =====
+// Paste your deployed Apps Script Web App URL here after setup (see setup guide)
+const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyj5FXteNB1uzAN8Z7pHq7FgwZzUgSaq9QVr_DN4eJAzu-QtN5zlYk1AhHIu200XJ3M/exec";
+
+function generateOrderId() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const datePart = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `KIT-${datePart}-${timePart}`;
+}
+
+function logToSheet(orderId, timestamp, staffName, branch, items) {
+  if (!SHEET_SCRIPT_URL || SHEET_SCRIPT_URL.indexOf("PASTE_") === 0) return; // not configured yet
+  try {
+    fetch(SHEET_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ orderId, timestamp, staffName, branch, items })
+    });
+  } catch (e) {
+    console.error("Sheet logging failed (print still proceeds):", e);
+  }
+}
+
 // Categorized kitchen SKU catalog
 const categories = [
   {
@@ -251,6 +284,7 @@ function generatePrint() {
   }
 
   let rows = "";
+  const sheetItems = [];
 
   categories.forEach(cat => {
     // Collect any non-zero items in this category first
@@ -270,6 +304,7 @@ function generatePrint() {
         <td style="text-align:center">${rcv}</td>
         <td>${note}</td>
       </tr>`;
+      sheetItems.push({ category: cat.name, name: item.name, qty, unit: item.unit, notes: note });
     });
     if (catRows) {
       rows += `<tr style="background:#1a1a1a;color:#fff;font-weight:bold;">
@@ -292,12 +327,19 @@ function generatePrint() {
       <td style="text-align:center">${unit}</td>
       <td></td><td></td><td></td>
     </tr>`;
+    sheetItems.push({ category: "Other / Ad-hoc", name, qty, unit, notes: "" });
   });
 
   if (!rows) {
     alert("Please enter at least one item quantity.");
     return;
   }
+
+  // Log to Google Sheets (fire-and-forget, never blocks printing)
+  const orderId = generateOrderId();
+  const timestamp = new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
+  logToSheet(orderId, timestamp, staffName, branch, sheetItems);
+
 
   const html = `<!DOCTYPE html><html><head><title>Kitchen Delivery Order — ${branch}</title>
   <style>
