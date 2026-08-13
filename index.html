@@ -134,14 +134,14 @@ function generateOrderId() {
   return `KIT-${datePart}-${timePart}`;
 }
 
-function logToSheet(orderId, timestamp, staffName, branch, items) {
+function logToSheet(orderId, orderDate, submittedAt, staffName, branch, items) {
   if (!SHEET_SCRIPT_URL || SHEET_SCRIPT_URL.indexOf("PASTE_") === 0) return; // not configured yet
   try {
     fetch(SHEET_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ orderId, timestamp, staffName, branch, items })
+      body: JSON.stringify({ orderId, orderDate, submittedAt, staffName, branch, items })
     });
   } catch (e) {
     console.error("Sheet logging failed (print still proceeds):", e);
@@ -337,8 +337,8 @@ function generatePrint() {
 
   // Log to Google Sheets (fire-and-forget, never blocks printing)
   const orderId = generateOrderId();
-  const timestamp = new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
-  logToSheet(orderId, timestamp, staffName, branch, sheetItems);
+  const submittedAt = new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
+  logToSheet(orderId, date, submittedAt, staffName, branch, sheetItems);
 
 
   const html = `<!DOCTYPE html><html><head><title>Kitchen Delivery Order — ${branch}</title>
