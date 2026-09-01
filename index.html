@@ -307,7 +307,7 @@ function generatePrint() {
       sheetItems.push({ category: cat.name, name: item.name, qty, unit: item.unit, notes: note });
     });
     if (catRows) {
-      rows += `<tr style="background:#1a1a1a;color:#fff;font-weight:bold;">
+      rows += `<tr style="background:#e8e8e8;color:#1a1a1a;font-weight:bold;">
         <td colspan="6">${cat.name}</td>
       </tr>`;
       rows += catRows;
@@ -355,7 +355,7 @@ function generatePrint() {
     .info-box div { font-size: 13px; }
     .info-box strong { display: block; font-size: 10.5px; text-transform: uppercase; color: #999; letter-spacing: 0.8px; margin-bottom: 3px; font-weight: normal; }
     table { width: 100%; border-collapse: collapse; margin-top: 6px; font-family: Arial, sans-serif; }
-    th { background: #1a1a1a; color: #fff; border: 1px solid #1a1a1a; padding: 9px 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    th { background: #fff; color: #1a1a1a; border: 1px solid #1a1a1a; border-bottom: 2px solid #1a1a1a; padding: 9px 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; }
     td { border: 1px solid #ccc; padding: 9px 8px; font-size: 12px; }
     .sign-section { font-family: Arial, sans-serif; display: flex; justify-content: space-between; margin-top: 55px; gap: 20px; }
     .sign-box { flex: 1; text-align: center; }
